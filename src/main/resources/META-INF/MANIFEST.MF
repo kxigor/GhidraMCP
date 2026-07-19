@@ -2,5 +2,5 @@ Manifest-Version: 1.0
 Plugin-Class: com.lauriewired.GhidraMCP
 Plugin-Name: GhidraMCP
 Plugin-Version: 1.0
-Plugin-Author: LaurieWired
-Plugin-Description: A custom plugin by LaurieWired
+Plugin-Author: kxigor
+Plugin-Description: HTTP server plugin exposing Ghidra program data over MCP (fork of GhidraMCP by LaurieWired)

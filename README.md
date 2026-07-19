@@ -1,119 +1,92 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
-[![GitHub release (latest by date)](https://img.shields.io/github/v/release/LaurieWired/GhidraMCP)](https://github.com/LaurieWired/GhidraMCP/releases)
-[![GitHub stars](https://img.shields.io/github/stars/LaurieWired/GhidraMCP)](https://github.com/LaurieWired/GhidraMCP/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/LaurieWired/GhidraMCP)](https://github.com/LaurieWired/GhidraMCP/network/members)
-[![GitHub contributors](https://img.shields.io/github/contributors/LaurieWired/GhidraMCP)](https://github.com/LaurieWired/GhidraMCP/graphs/contributors)
-[![Follow @lauriewired](https://img.shields.io/twitter/follow/lauriewired?style=social)](https://twitter.com/lauriewired)
 
-![ghidra_MCP_logo](https://github.com/user-attachments/assets/4986d702-be3f-4697-acce-aea55cd79ad3)
+# GhidraMCP
 
+A [Model Context Protocol](https://modelcontextprotocol.io) server for [Ghidra](https://ghidra-sre.org).
+A Ghidra plugin exposes program data and edit operations over a small embedded HTTP server, and a
+Python bridge turns them into MCP tools an LLM agent can call to analyze and modify a binary.
 
-# ghidraMCP
-ghidraMCP is an Model Context Protocol server for allowing LLMs to autonomously reverse engineer applications. It exposes numerous tools from core Ghidra functionality to MCP clients.
+> Fork of [GhidraMCP by LaurieWired](https://github.com/LaurieWired/GhidraMCP) (Apache 2.0).
+> See [NOTICE](NOTICE) for attribution.
 
-https://github.com/user-attachments/assets/36080514-f227-44bd-af84-78e29ee1d7f9
+## Features
 
+**Analysis & navigation**
+- Decompile and disassemble functions
+- List functions, methods, classes, namespaces, imports, exports, segments, strings, data
+- Search functions; read current address/function
+- Cross-references: to an address, from an address, and to a function
 
-# Features
-MCP Server + Ghidra Plugin
+**Renaming & signatures**
+- Rename functions, data, and local variables
+- Set function prototypes and local variable types
 
-- Decompile and analyze binaries in Ghidra
-- Automatically rename methods and data
-- List methods, classes, imports, and exports
+**Data types**
+- Structures — create, add/edit/delete fields, rename, delete, inspect layout
+- Enums — create, add/remove values
+- Unions — create, add fields
+- Typedefs — create aliases
+- Browse the data type manager and dump any type (`list_data_types`, `get_type`)
 
-# Installation
+**Applying types to memory**
+- Apply a data type at an address, create arrays, clear defined data
 
-## Prerequisites
-- Install [Ghidra](https://ghidra-sre.org)
-- Python3
-- MCP [SDK](https://github.com/modelcontextprotocol/python-sdk)
+**Code & symbols**
+- Create/delete functions, disassemble (define code) at an address
+- Create, rename, and remove labels
 
-## Ghidra
-First, download the latest [release](https://github.com/LaurieWired/GhidraMCP/releases) from this repository. This contains the Ghidra plugin and Python MCP client. Then, you can directly import the plugin into Ghidra.
+**Comments, bookmarks & patching**
+- Set comments (plate / pre / eol / post / repeatable)
+- Set and list bookmarks
+- Assemble a single instruction; patch raw bytes
 
-1. Run Ghidra
-2. Select `File` -> `Install Extensions`
-3. Click the `+` button
-4. Select the `GhidraMCP-1-2.zip` (or your chosen version) from the downloaded release
-5. Restart Ghidra
-6. Make sure the GhidraMCPPlugin is enabled in `File` -> `Configure` -> `Developer`
-7. *Optional*: Configure the port in Ghidra with `Edit` -> `Tool Options` -> `GhidraMCP HTTP Server`
+## Requirements
 
-Video Installation Guide:
+- Ghidra **12.1.2** (see version note below)
+- Python 3.10+ with the `mcp` and `requests` packages
 
+## Install the plugin
 
-https://github.com/user-attachments/assets/75f0c176-6da1-48dc-ad96-c182eb4648c3
+1. Build the extension (see below), or use a prebuilt `GhidraMCP-*.zip`.
+2. In Ghidra: `File` → `Install Extensions` → `+` → select the zip → restart Ghidra.
+3. Enable **GhidraMCP** under `File` → `Configure` → `Developer`.
+4. *Optional:* change the HTTP port under `Edit` → `Tool Options` → `GhidraMCP HTTP Server`
+   (default `8080`).
 
+> **Version must match.** Ghidra refuses an extension whose `ghidraVersion` differs from your build.
+> To target another version, copy that version's jars into `lib/` and update `version` /
+> `ghidraVersion` in [`src/main/resources/extension.properties`](src/main/resources/extension.properties).
 
+## Run the MCP bridge
 
-## MCP Clients
+The bridge (`bridge_mcp_ghidra.py`) is a standard MCP server (stdio by default, `--transport sse`
+also supported). Point it at the plugin's HTTP server:
 
-Theoretically, any MCP client should work with ghidraMCP.  Three examples are given below.
-
-## Example 1: Claude Desktop
-To set up Claude Desktop as a Ghidra MCP client, go to `Claude` -> `Settings` -> `Developer` -> `Edit Config` -> `claude_desktop_config.json` and add the following:
-
-```json
-{
-  "mcpServers": {
-    "ghidra": {
-      "command": "python",
-      "args": [
-        "/ABSOLUTE_PATH_TO/bridge_mcp_ghidra.py",
-        "--ghidra-server",
-        "http://127.0.0.1:8080/"
-      ]
-    }
-  }
-}
+```bash
+python bridge_mcp_ghidra.py --ghidra-server http://127.0.0.1:8080/
 ```
 
-Alternatively, edit this file directly:
-```
-/Users/YOUR_USER/Library/Application Support/Claude/claude_desktop_config.json
-```
+Register it with any MCP client. Tools work while Ghidra is open with the plugin enabled and a
+program loaded.
 
-The server IP and port are configurable and should be set to point to the target Ghidra instance. If not set, both will default to localhost:8080.
+## Build from source
 
-## Example 2: Cline
-To use GhidraMCP with [Cline](https://cline.bot), this requires manually running the MCP server as well. First run the following command:
+Copy these jars from your Ghidra install into `lib/`, then run `mvn clean package`:
 
 ```
-python bridge_mcp_ghidra.py --transport sse --mcp-host 127.0.0.1 --mcp-port 8081 --ghidra-server http://127.0.0.1:8080/
+Ghidra/Features/Base/lib/Base.jar
+Ghidra/Features/Decompiler/lib/Decompiler.jar
+Ghidra/Framework/Docking/lib/Docking.jar
+Ghidra/Framework/Generic/lib/Generic.jar
+Ghidra/Framework/Gui/lib/Gui.jar
+Ghidra/Framework/Project/lib/Project.jar
+Ghidra/Framework/SoftwareModeling/lib/SoftwareModeling.jar
+Ghidra/Framework/Utility/lib/Utility.jar
 ```
 
-The only *required* argument is the transport. If all other arguments are unspecified, they will default to the above. Once the MCP server is running, open up Cline and select `MCP Servers` at the top.
+The installable extension is produced at `target/GhidraMCP-*.zip`.
 
-![Cline select](https://github.com/user-attachments/assets/88e1f336-4729-46ee-9b81-53271e9c0ce0)
+## License
 
-Then select `Remote Servers` and add the following, ensuring that the url matches the MCP host and port:
-
-1. Server Name: GhidraMCP
-2. Server URL: `http://127.0.0.1:8081/sse`
-
-## Example 3: 5ire
-Another MCP client that supports multiple models on the backend is [5ire](https://github.com/nanbingxyz/5ire). To set up GhidraMCP, open 5ire and go to `Tools` -> `New` and set the following configurations:
-
-1. Tool Key: ghidra
-2. Name: GhidraMCP
-3. Command: `python /ABSOLUTE_PATH_TO/bridge_mcp_ghidra.py`
-
-# Building from Source
-1. Copy the following files from your Ghidra directory to this project's `lib/` directory:
-- `Ghidra/Features/Base/lib/Base.jar`
-- `Ghidra/Features/Decompiler/lib/Decompiler.jar`
-- `Ghidra/Framework/Docking/lib/Docking.jar`
-- `Ghidra/Framework/Generic/lib/Generic.jar`
-- `Ghidra/Framework/Project/lib/Project.jar`
-- `Ghidra/Framework/SoftwareModeling/lib/SoftwareModeling.jar`
-- `Ghidra/Framework/Utility/lib/Utility.jar`
-- `Ghidra/Framework/Gui/lib/Gui.jar`
-2. Build with Maven by running:
-
-`mvn clean package assembly:single`
-
-The generated zip file includes the built Ghidra plugin and its resources. These files are required for Ghidra to recognize the new extension.
-
-- lib/GhidraMCP.jar
-- extensions.properties
-- Module.manifest
+Apache License 2.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE).
+Original project: [GhidraMCP by LaurieWired](https://github.com/LaurieWired/GhidraMCP).

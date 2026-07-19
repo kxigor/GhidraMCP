@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "ghidra": {
+      "command": "/home/garik/PROJECTS/GhidraMCP/.venv/bin/python",
+      "args": [
+        "/home/garik/PROJECTS/GhidraMCP/bridge_mcp_ghidra.py",
+        "--ghidra-server",
+        "http://127.0.0.1:8080/"
+      ],
+      "env": {
+        "NO_PROXY": "127.0.0.1,localhost",
+        "no_proxy": "127.0.0.1,localhost"
+      }
+    }
+  }
+}

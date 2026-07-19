@@ -40,6 +40,26 @@ import ghidra.program.model.data.DataType;
 import ghidra.program.model.data.DataTypeManager;
 import ghidra.program.model.data.PointerDataType;
 import ghidra.program.model.data.Undefined1DataType;
+import ghidra.program.model.data.StructureDataType;
+import ghidra.program.model.data.Structure;
+import ghidra.program.model.data.DataTypeComponent;
+import ghidra.program.model.data.CategoryPath;
+import ghidra.program.model.data.DataTypeConflictHandler;
+import ghidra.program.model.data.EnumDataType;
+import ghidra.program.model.data.Enum;
+import ghidra.program.model.data.UnionDataType;
+import ghidra.program.model.data.Union;
+import ghidra.program.model.data.TypedefDataType;
+import ghidra.program.model.data.TypeDef;
+import ghidra.program.model.data.ArrayDataType;
+import ghidra.program.model.data.Composite;
+import ghidra.program.model.listing.CommentType;
+import ghidra.program.model.listing.Bookmark;
+import ghidra.app.cmd.data.CreateDataCmd;
+import ghidra.app.cmd.disassemble.DisassembleCommand;
+import ghidra.app.cmd.function.CreateFunctionCmd;
+import ghidra.app.plugin.assembler.Assembler;
+import ghidra.app.plugin.assembler.Assemblers;
 import ghidra.program.model.listing.Variable;
 import ghidra.app.decompiler.component.DecompilerUtils;
 import ghidra.app.decompiler.ClangToken;
@@ -339,6 +359,175 @@ public class GhidraMCPPlugin extends Plugin {
             int limit = parseIntOrDefault(qparams.get("limit"), 100);
             String filter = qparams.get("filter");
             sendResponse(exchange, listDefinedStrings(offset, limit, filter));
+        });
+
+        // Data type (structure) endpoints
+        server.createContext("/create_struct", exchange -> {
+            Map<String, String> params = parsePostParams(exchange);
+            sendResponse(exchange, createStruct(params.get("name"), params.get("category")));
+        });
+
+        server.createContext("/add_struct_field", exchange -> {
+            Map<String, String> params = parsePostParams(exchange);
+            int offset = parseIntOrDefault(params.get("offset"), -1);
+            sendResponse(exchange, addStructField(
+                params.get("struct_name"), params.get("field_name"),
+                params.get("field_type"), offset));
+        });
+
+        server.createContext("/edit_struct_field", exchange -> {
+            Map<String, String> params = parsePostParams(exchange);
+            sendResponse(exchange, editStructField(
+                params.get("struct_name"), params.get("field"),
+                params.get("new_name"), params.get("new_type")));
+        });
+
+        server.createContext("/delete_struct_field", exchange -> {
+            Map<String, String> params = parsePostParams(exchange);
+            sendResponse(exchange, deleteStructField(params.get("struct_name"), params.get("field")));
+        });
+
+        server.createContext("/rename_struct", exchange -> {
+            Map<String, String> params = parsePostParams(exchange);
+            sendResponse(exchange, renameStruct(params.get("old_name"), params.get("new_name")));
+        });
+
+        server.createContext("/delete_struct", exchange -> {
+            Map<String, String> params = parsePostParams(exchange);
+            sendResponse(exchange, deleteStruct(params.get("name")));
+        });
+
+        server.createContext("/get_struct", exchange -> {
+            Map<String, String> qparams = parseQueryParams(exchange);
+            sendResponse(exchange, getStruct(qparams.get("name")));
+        });
+
+        // Group B: other data types (enum / union / typedef / browse)
+        server.createContext("/create_enum", exchange -> {
+            Map<String, String> params = parsePostParams(exchange);
+            int size = parseIntOrDefault(params.get("size"), 4);
+            sendResponse(exchange, createEnum(params.get("name"), size, params.get("category")));
+        });
+
+        server.createContext("/add_enum_value", exchange -> {
+            Map<String, String> params = parsePostParams(exchange);
+            long value = parseLongOrDefault(params.get("value"), 0);
+            sendResponse(exchange, addEnumValue(params.get("enum_name"), params.get("value_name"), value));
+        });
+
+        server.createContext("/delete_enum_value", exchange -> {
+            Map<String, String> params = parsePostParams(exchange);
+            sendResponse(exchange, deleteEnumValue(params.get("enum_name"), params.get("value_name")));
+        });
+
+        server.createContext("/create_union", exchange -> {
+            Map<String, String> params = parsePostParams(exchange);
+            sendResponse(exchange, createUnion(params.get("name"), params.get("category")));
+        });
+
+        server.createContext("/add_union_field", exchange -> {
+            Map<String, String> params = parsePostParams(exchange);
+            sendResponse(exchange, addUnionField(
+                params.get("union_name"), params.get("field_name"), params.get("field_type")));
+        });
+
+        server.createContext("/create_typedef", exchange -> {
+            Map<String, String> params = parsePostParams(exchange);
+            sendResponse(exchange, createTypedef(
+                params.get("name"), params.get("base_type"), params.get("category")));
+        });
+
+        server.createContext("/list_data_types", exchange -> {
+            Map<String, String> q = parseQueryParams(exchange);
+            int offset = parseIntOrDefault(q.get("offset"), 0);
+            int limit = parseIntOrDefault(q.get("limit"), 100);
+            sendResponse(exchange, listDataTypes(q.get("category"), q.get("filter"), offset, limit));
+        });
+
+        server.createContext("/get_type", exchange -> {
+            Map<String, String> q = parseQueryParams(exchange);
+            sendResponse(exchange, getType(q.get("name")));
+        });
+
+        // Group C: apply types to memory
+        server.createContext("/apply_data_type", exchange -> {
+            Map<String, String> params = parsePostParams(exchange);
+            boolean clear = !"false".equalsIgnoreCase(params.getOrDefault("clear_existing", "true"));
+            sendResponse(exchange, applyDataType(params.get("address"), params.get("type_name"), clear));
+        });
+
+        server.createContext("/create_array", exchange -> {
+            Map<String, String> params = parsePostParams(exchange);
+            int count = parseIntOrDefault(params.get("count"), 1);
+            sendResponse(exchange, createArray(params.get("address"), params.get("type_name"), count));
+        });
+
+        server.createContext("/clear_data", exchange -> {
+            Map<String, String> params = parsePostParams(exchange);
+            sendResponse(exchange, clearData(params.get("address")));
+        });
+
+        // Group D: code & symbols
+        server.createContext("/create_function", exchange -> {
+            Map<String, String> params = parsePostParams(exchange);
+            sendResponse(exchange, createFunctionAt(params.get("address"), params.get("name")));
+        });
+
+        server.createContext("/delete_function", exchange -> {
+            Map<String, String> params = parsePostParams(exchange);
+            sendResponse(exchange, deleteFunctionAt(params.get("address")));
+        });
+
+        server.createContext("/define_code", exchange -> {
+            Map<String, String> params = parsePostParams(exchange);
+            sendResponse(exchange, defineCode(params.get("address")));
+        });
+
+        server.createContext("/create_label", exchange -> {
+            Map<String, String> params = parsePostParams(exchange);
+            sendResponse(exchange, createLabel(params.get("address"), params.get("name")));
+        });
+
+        server.createContext("/rename_label", exchange -> {
+            Map<String, String> params = parsePostParams(exchange);
+            sendResponse(exchange, renameLabel(
+                params.get("address"), params.get("old_name"), params.get("new_name")));
+        });
+
+        server.createContext("/remove_label", exchange -> {
+            Map<String, String> params = parsePostParams(exchange);
+            sendResponse(exchange, removeLabel(params.get("address"), params.get("name")));
+        });
+
+        // Group E: comments & bookmarks
+        server.createContext("/set_comment", exchange -> {
+            Map<String, String> params = parsePostParams(exchange);
+            sendResponse(exchange, setComment(
+                params.get("address"), params.get("comment_type"), params.get("text")));
+        });
+
+        server.createContext("/set_bookmark", exchange -> {
+            Map<String, String> params = parsePostParams(exchange);
+            sendResponse(exchange, setBookmark(
+                params.get("address"), params.get("category"), params.get("note"), params.get("type")));
+        });
+
+        server.createContext("/list_bookmarks", exchange -> {
+            Map<String, String> q = parseQueryParams(exchange);
+            int offset = parseIntOrDefault(q.get("offset"), 0);
+            int limit = parseIntOrDefault(q.get("limit"), 100);
+            sendResponse(exchange, listBookmarks(offset, limit));
+        });
+
+        // Group F: patching
+        server.createContext("/assemble_instruction", exchange -> {
+            Map<String, String> params = parsePostParams(exchange);
+            sendResponse(exchange, assembleInstruction(params.get("address"), params.get("instruction")));
+        });
+
+        server.createContext("/patch_bytes", exchange -> {
+            Map<String, String> params = parsePostParams(exchange);
+            sendResponse(exchange, patchBytes(params.get("address"), params.get("hex_bytes")));
         });
 
         server.setExecutor(null);
@@ -1413,6 +1602,632 @@ public class GhidraMCPPlugin extends Plugin {
         return sb.toString();
     }
 
+    // ----------------------------------------------------------------------------------
+    // Structure (data type) create/edit/read
+    // ----------------------------------------------------------------------------------
+
+    /**
+     * Small functional interface for an operation that runs inside a program transaction
+     * on the Swing thread and returns a human-readable result string.
+     */
+    private interface TxOp {
+        String run() throws Exception;
+    }
+
+    /**
+     * Run a mutating operation on the Swing thread wrapped in a single program transaction.
+     * The operation validates its own preconditions and returns a result string (success or a
+     * soft-failure message). Exceptions are caught and reported; the transaction is committed
+     * only if no exception was thrown.
+     */
+    private String runInTransaction(String txName, TxOp op) {
+        Program program = getCurrentProgram();
+        if (program == null) return "No program loaded";
+
+        final String[] result = new String[]{ "Unknown error" };
+        final AtomicBoolean ok = new AtomicBoolean(false);
+        try {
+            SwingUtilities.invokeAndWait(() -> {
+                int tx = program.startTransaction(txName);
+                try {
+                    result[0] = op.run();
+                    ok.set(true);
+                } catch (Exception e) {
+                    result[0] = "Error: " + e.getMessage();
+                    Msg.error(this, txName + " failed", e);
+                } finally {
+                    program.endTransaction(tx, ok.get());
+                }
+            });
+        } catch (InterruptedException | InvocationTargetException e) {
+            return "Failed to execute " + txName.toLowerCase() + " on Swing thread: " + e.getMessage();
+        }
+        return result[0];
+    }
+
+    /**
+     * Look up a Structure data type by name in all categories.
+     * @return the Structure, or null if not found or not a structure
+     */
+    private Structure getStructureByName(DataTypeManager dtm, String name) {
+        DataType dt = findDataTypeByNameInAllCategories(dtm, name);
+        return (dt instanceof Structure) ? (Structure) dt : null;
+    }
+
+    /**
+     * Resolve a field identifier (numeric ordinal or field name) to a component ordinal.
+     * @return the ordinal, or -1 if not found
+     */
+    private int resolveComponentOrdinal(Structure struct, String field) {
+        try {
+            int ord = Integer.parseInt(field.trim());
+            return (ord >= 0 && ord < struct.getNumComponents()) ? ord : -1;
+        } catch (NumberFormatException ignore) {
+            // not a number, fall through to name lookup
+        }
+        for (DataTypeComponent c : struct.getComponents()) {
+            String fn = c.getFieldName();
+            if (fn != null && fn.equals(field)) {
+                return c.getOrdinal();
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Create a new empty structure data type.
+     */
+    private String createStruct(String name, String category) {
+        if (name == null || name.isEmpty()) return "Struct name is required";
+        return runInTransaction("Create struct", () -> {
+            DataTypeManager dtm = getCurrentProgram().getDataTypeManager();
+            if (findDataTypeByNameInAllCategories(dtm, name) != null) {
+                return "A data type named '" + name + "' already exists";
+            }
+            CategoryPath path = (category == null || category.isEmpty())
+                ? new CategoryPath("/") : new CategoryPath(category);
+            StructureDataType struct = new StructureDataType(path, name, 0, dtm);
+            DataType added = dtm.addDataType(struct, DataTypeConflictHandler.DEFAULT_HANDLER);
+            return "Created struct '" + added.getName() + "' at " + added.getPathName();
+        });
+    }
+
+    /**
+     * Add a field to an existing structure. offset < 0 appends to the end.
+     */
+    private String addStructField(String structName, String fieldName, String fieldType, int offset) {
+        if (structName == null || structName.isEmpty()) return "struct_name is required";
+        if (fieldType == null || fieldType.isEmpty()) return "field_type is required";
+        return runInTransaction("Add struct field", () -> {
+            DataTypeManager dtm = getCurrentProgram().getDataTypeManager();
+            Structure struct = getStructureByName(dtm, structName);
+            if (struct == null) return "Struct not found: " + structName;
+            DataType ft = resolveDataType(dtm, fieldType);
+            if (ft == null) return "Could not resolve field type: " + fieldType;
+            int len = ft.getLength() > 0 ? ft.getLength() : 1;
+            String fn = (fieldName == null || fieldName.isEmpty()) ? null : fieldName;
+            if (offset < 0) {
+                struct.add(ft, len, fn, null);
+            } else {
+                struct.insertAtOffset(offset, ft, len, fn, null);
+            }
+            return "Added field '" + (fn == null ? "(unnamed)" : fn) + "' of type "
+                + ft.getName() + " to " + structName + "; new size = " + struct.getLength();
+        });
+    }
+
+    /**
+     * Edit an existing struct field's name and/or type. Only the provided attributes change.
+     */
+    private String editStructField(String structName, String field, String newName, String newType) {
+        if (structName == null || structName.isEmpty()) return "struct_name is required";
+        if (field == null || field.isEmpty()) return "field (name or ordinal) is required";
+        return runInTransaction("Edit struct field", () -> {
+            DataTypeManager dtm = getCurrentProgram().getDataTypeManager();
+            Structure struct = getStructureByName(dtm, structName);
+            if (struct == null) return "Struct not found: " + structName;
+            int ordinal = resolveComponentOrdinal(struct, field);
+            if (ordinal < 0) return "Field not found: " + field;
+            DataTypeComponent comp = struct.getComponent(ordinal);
+            DataType ft = (newType == null || newType.isEmpty())
+                ? comp.getDataType() : resolveDataType(dtm, newType);
+            if (ft == null) return "Could not resolve type: " + newType;
+            String fn = (newName == null || newName.isEmpty()) ? comp.getFieldName() : newName;
+            int len = ft.getLength() > 0 ? ft.getLength() : comp.getLength();
+            struct.replace(ordinal, ft, len, fn, comp.getComment());
+            return "Updated field #" + ordinal + " -> name=" + (fn == null ? "(unnamed)" : fn)
+                + ", type=" + ft.getName() + "; struct size = " + struct.getLength();
+        });
+    }
+
+    /**
+     * Delete a field from a structure, identified by ordinal or field name.
+     */
+    private String deleteStructField(String structName, String field) {
+        if (structName == null || structName.isEmpty()) return "struct_name is required";
+        if (field == null || field.isEmpty()) return "field (name or ordinal) is required";
+        return runInTransaction("Delete struct field", () -> {
+            DataTypeManager dtm = getCurrentProgram().getDataTypeManager();
+            Structure struct = getStructureByName(dtm, structName);
+            if (struct == null) return "Struct not found: " + structName;
+            int ordinal = resolveComponentOrdinal(struct, field);
+            if (ordinal < 0) return "Field not found: " + field;
+            struct.delete(ordinal);
+            return "Deleted field #" + ordinal + " from " + structName
+                + "; new size = " + struct.getLength();
+        });
+    }
+
+    /**
+     * Rename a structure data type.
+     */
+    private String renameStruct(String oldName, String newName) {
+        if (oldName == null || oldName.isEmpty() || newName == null || newName.isEmpty()) {
+            return "old_name and new_name are required";
+        }
+        return runInTransaction("Rename struct", () -> {
+            DataTypeManager dtm = getCurrentProgram().getDataTypeManager();
+            Structure struct = getStructureByName(dtm, oldName);
+            if (struct == null) return "Struct not found: " + oldName;
+            struct.setName(newName);
+            return "Renamed struct '" + oldName + "' to '" + newName + "'";
+        });
+    }
+
+    /**
+     * Delete a structure data type from the data type manager.
+     */
+    private String deleteStruct(String name) {
+        if (name == null || name.isEmpty()) return "name is required";
+        return runInTransaction("Delete struct", () -> {
+            DataTypeManager dtm = getCurrentProgram().getDataTypeManager();
+            Structure struct = getStructureByName(dtm, name);
+            if (struct == null) return "Struct not found: " + name;
+            boolean removed = dtm.remove(struct, new ConsoleTaskMonitor());
+            return removed ? "Deleted struct '" + name + "'"
+                           : "Failed to delete struct '" + name + "'";
+        });
+    }
+
+    /**
+     * Dump a structure's layout (ordinal, offset, length, type, field name).
+     */
+    private String getStruct(String name) {
+        Program program = getCurrentProgram();
+        if (program == null) return "No program loaded";
+        if (name == null || name.isEmpty()) return "name is required";
+
+        DataTypeManager dtm = program.getDataTypeManager();
+        Structure struct = getStructureByName(dtm, name);
+        if (struct == null) return "Struct not found: " + name;
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("Struct: ").append(struct.getName())
+          .append(" (").append(struct.getPathName()).append(")")
+          .append(", size = ").append(struct.getLength()).append(" bytes\n");
+        sb.append("ordinal | offset | length | type | name\n");
+        for (DataTypeComponent c : struct.getComponents()) {
+            String fn = c.getFieldName();
+            sb.append(String.format("%d | %d | %d | %s | %s\n",
+                c.getOrdinal(), c.getOffset(), c.getLength(),
+                c.getDataType().getName(), fn == null ? "(unnamed)" : fn));
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Build a CategoryPath from a string, defaulting to root "/".
+     */
+    private CategoryPath categoryPath(String category) {
+        return (category == null || category.isEmpty())
+            ? new CategoryPath("/") : new CategoryPath(category);
+    }
+
+    // ----------------------------------------------------------------------------------
+    // Group B: enums, unions, typedefs, type browsing
+    // ----------------------------------------------------------------------------------
+
+    private String createEnum(String name, int size, String category) {
+        if (name == null || name.isEmpty()) return "name is required";
+        if (size != 1 && size != 2 && size != 4 && size != 8) return "size must be 1, 2, 4 or 8";
+        return runInTransaction("Create enum", () -> {
+            DataTypeManager dtm = getCurrentProgram().getDataTypeManager();
+            if (findDataTypeByNameInAllCategories(dtm, name) != null) {
+                return "A data type named '" + name + "' already exists";
+            }
+            EnumDataType e = new EnumDataType(categoryPath(category), name, size, dtm);
+            DataType added = dtm.addDataType(e, DataTypeConflictHandler.DEFAULT_HANDLER);
+            return "Created enum '" + added.getName() + "' (" + size + " bytes) at " + added.getPathName();
+        });
+    }
+
+    private String addEnumValue(String enumName, String valueName, long value) {
+        if (enumName == null || enumName.isEmpty()) return "enum_name is required";
+        if (valueName == null || valueName.isEmpty()) return "value_name is required";
+        return runInTransaction("Add enum value", () -> {
+            DataTypeManager dtm = getCurrentProgram().getDataTypeManager();
+            DataType dt = findDataTypeByNameInAllCategories(dtm, enumName);
+            if (!(dt instanceof Enum)) return "Enum not found: " + enumName;
+            ((Enum) dt).add(valueName, value);
+            return "Added '" + valueName + "' = " + value + " to enum " + enumName;
+        });
+    }
+
+    private String deleteEnumValue(String enumName, String valueName) {
+        if (enumName == null || enumName.isEmpty()) return "enum_name is required";
+        if (valueName == null || valueName.isEmpty()) return "value_name is required";
+        return runInTransaction("Delete enum value", () -> {
+            DataTypeManager dtm = getCurrentProgram().getDataTypeManager();
+            DataType dt = findDataTypeByNameInAllCategories(dtm, enumName);
+            if (!(dt instanceof Enum)) return "Enum not found: " + enumName;
+            ((Enum) dt).remove(valueName);
+            return "Removed '" + valueName + "' from enum " + enumName;
+        });
+    }
+
+    private String createUnion(String name, String category) {
+        if (name == null || name.isEmpty()) return "name is required";
+        return runInTransaction("Create union", () -> {
+            DataTypeManager dtm = getCurrentProgram().getDataTypeManager();
+            if (findDataTypeByNameInAllCategories(dtm, name) != null) {
+                return "A data type named '" + name + "' already exists";
+            }
+            UnionDataType u = new UnionDataType(categoryPath(category), name, dtm);
+            DataType added = dtm.addDataType(u, DataTypeConflictHandler.DEFAULT_HANDLER);
+            return "Created union '" + added.getName() + "' at " + added.getPathName();
+        });
+    }
+
+    private String addUnionField(String unionName, String fieldName, String fieldType) {
+        if (unionName == null || unionName.isEmpty()) return "union_name is required";
+        if (fieldType == null || fieldType.isEmpty()) return "field_type is required";
+        return runInTransaction("Add union field", () -> {
+            DataTypeManager dtm = getCurrentProgram().getDataTypeManager();
+            DataType dt = findDataTypeByNameInAllCategories(dtm, unionName);
+            if (!(dt instanceof Union)) return "Union not found: " + unionName;
+            Union u = (Union) dt;
+            DataType ft = resolveDataType(dtm, fieldType);
+            if (ft == null) return "Could not resolve field type: " + fieldType;
+            int len = ft.getLength() > 0 ? ft.getLength() : 1;
+            String fn = (fieldName == null || fieldName.isEmpty()) ? null : fieldName;
+            u.add(ft, len, fn, null);
+            return "Added field '" + (fn == null ? "(unnamed)" : fn) + "' of type "
+                + ft.getName() + " to union " + unionName + "; size = " + u.getLength();
+        });
+    }
+
+    private String createTypedef(String name, String baseType, String category) {
+        if (name == null || name.isEmpty()) return "name is required";
+        if (baseType == null || baseType.isEmpty()) return "base_type is required";
+        return runInTransaction("Create typedef", () -> {
+            DataTypeManager dtm = getCurrentProgram().getDataTypeManager();
+            if (findDataTypeByNameInAllCategories(dtm, name) != null) {
+                return "A data type named '" + name + "' already exists";
+            }
+            DataType base = resolveDataType(dtm, baseType);
+            if (base == null) return "Could not resolve base type: " + baseType;
+            TypedefDataType td = new TypedefDataType(categoryPath(category), name, base, dtm);
+            DataType added = dtm.addDataType(td, DataTypeConflictHandler.DEFAULT_HANDLER);
+            return "Created typedef '" + added.getName() + "' -> " + base.getName()
+                + " at " + added.getPathName();
+        });
+    }
+
+    private String listDataTypes(String category, String filter, int offset, int limit) {
+        Program program = getCurrentProgram();
+        if (program == null) return "No program loaded";
+        DataTypeManager dtm = program.getDataTypeManager();
+        List<String> lines = new ArrayList<>();
+        Iterator<DataType> it = dtm.getAllDataTypes();
+        while (it.hasNext()) {
+            DataType dt = it.next();
+            String path = dt.getPathName();
+            if (category != null && !category.isEmpty() && !path.startsWith(category)) continue;
+            if (filter != null && !filter.isEmpty()
+                    && !dt.getName().toLowerCase().contains(filter.toLowerCase())) continue;
+            int len = dt.getLength();
+            lines.add(String.format("%s | %s | %s",
+                path, dt.getClass().getSimpleName(), len < 0 ? "?" : String.valueOf(len)));
+        }
+        Collections.sort(lines);
+        return paginateList(lines, offset, limit);
+    }
+
+    private String getType(String name) {
+        Program program = getCurrentProgram();
+        if (program == null) return "No program loaded";
+        if (name == null || name.isEmpty()) return "name is required";
+        DataTypeManager dtm = program.getDataTypeManager();
+        DataType dt = findDataTypeByNameInAllCategories(dtm, name);
+        if (dt == null) return "Type not found: " + name;
+
+        if (dt instanceof Composite) {
+            Composite comp = (Composite) dt;
+            StringBuilder sb = new StringBuilder();
+            sb.append(dt instanceof Structure ? "Struct: " : "Union: ").append(dt.getName())
+              .append(" (").append(dt.getPathName()).append("), size = ")
+              .append(dt.getLength()).append(" bytes\n");
+            sb.append("ordinal | offset | length | type | name\n");
+            for (DataTypeComponent c : comp.getComponents()) {
+                String fn = c.getFieldName();
+                sb.append(String.format("%d | %d | %d | %s | %s\n",
+                    c.getOrdinal(), c.getOffset(), c.getLength(),
+                    c.getDataType().getName(), fn == null ? "(unnamed)" : fn));
+            }
+            return sb.toString();
+        }
+        if (dt instanceof Enum) {
+            Enum e = (Enum) dt;
+            StringBuilder sb = new StringBuilder();
+            sb.append("Enum: ").append(dt.getName()).append(" (").append(dt.getPathName())
+              .append("), size = ").append(dt.getLength()).append(" bytes\n");
+            for (String vn : e.getNames()) {
+                long v = e.getValue(vn);
+                sb.append(String.format("%s = %d (0x%x)\n", vn, v, v));
+            }
+            return sb.toString();
+        }
+        if (dt instanceof TypeDef) {
+            TypeDef td = (TypeDef) dt;
+            return "Typedef: " + dt.getName() + " (" + dt.getPathName() + ") -> "
+                + td.getDataType().getName();
+        }
+        return "Type: " + dt.getName() + " (" + dt.getPathName() + "), size = "
+            + dt.getLength() + ", class = " + dt.getClass().getSimpleName();
+    }
+
+    // ----------------------------------------------------------------------------------
+    // Group C: apply data types to memory
+    // ----------------------------------------------------------------------------------
+
+    private String applyDataType(String addressStr, String typeName, boolean clearExisting) {
+        if (addressStr == null || addressStr.isEmpty()) return "address is required";
+        if (typeName == null || typeName.isEmpty()) return "type_name is required";
+        return runInTransaction("Apply data type", () -> {
+            Program program = getCurrentProgram();
+            DataTypeManager dtm = program.getDataTypeManager();
+            DataType dt = resolveDataType(dtm, typeName);
+            if (dt == null) return "Could not resolve type: " + typeName;
+            Address addr = program.getAddressFactory().getAddress(addressStr);
+            if (addr == null) return "Invalid address: " + addressStr;
+            if (clearExisting) {
+                int len = dt.getLength();
+                Address end = (len > 1) ? addr.add(len - 1) : addr;
+                program.getListing().clearCodeUnits(addr, end, false);
+            }
+            CreateDataCmd cmd = new CreateDataCmd(addr, dt);
+            boolean ok = cmd.applyTo(program);
+            return ok ? "Applied " + dt.getName() + " at " + addr
+                      : "Failed to apply type: " + cmd.getStatusMsg();
+        });
+    }
+
+    private String createArray(String addressStr, String typeName, int count) {
+        if (addressStr == null || addressStr.isEmpty()) return "address is required";
+        if (typeName == null || typeName.isEmpty()) return "type_name is required";
+        if (count <= 0) return "count must be > 0";
+        return runInTransaction("Create array", () -> {
+            Program program = getCurrentProgram();
+            DataTypeManager dtm = program.getDataTypeManager();
+            DataType elem = resolveDataType(dtm, typeName);
+            if (elem == null) return "Could not resolve type: " + typeName;
+            int elemLen = elem.getLength() > 0 ? elem.getLength() : 1;
+            Address addr = program.getAddressFactory().getAddress(addressStr);
+            if (addr == null) return "Invalid address: " + addressStr;
+            ArrayDataType arr = new ArrayDataType(elem, count, elemLen);
+            program.getListing().clearCodeUnits(addr, addr.add((long) elemLen * count - 1), false);
+            CreateDataCmd cmd = new CreateDataCmd(addr, arr);
+            boolean ok = cmd.applyTo(program);
+            return ok ? "Applied " + elem.getName() + "[" + count + "] at " + addr
+                      : "Failed to create array: " + cmd.getStatusMsg();
+        });
+    }
+
+    private String clearData(String addressStr) {
+        if (addressStr == null || addressStr.isEmpty()) return "address is required";
+        return runInTransaction("Clear data", () -> {
+            Program program = getCurrentProgram();
+            Address addr = program.getAddressFactory().getAddress(addressStr);
+            if (addr == null) return "Invalid address: " + addressStr;
+            Data d = program.getListing().getDefinedDataAt(addr);
+            if (d != null) {
+                program.getListing().clearCodeUnits(d.getMinAddress(), d.getMaxAddress(), false);
+            } else {
+                program.getListing().clearCodeUnits(addr, addr, false);
+            }
+            return "Cleared data at " + addr;
+        });
+    }
+
+    // ----------------------------------------------------------------------------------
+    // Group D: code & symbols
+    // ----------------------------------------------------------------------------------
+
+    private String createFunctionAt(String addressStr, String name) {
+        if (addressStr == null || addressStr.isEmpty()) return "address is required";
+        return runInTransaction("Create function", () -> {
+            Program program = getCurrentProgram();
+            Address addr = program.getAddressFactory().getAddress(addressStr);
+            if (addr == null) return "Invalid address: " + addressStr;
+            if (program.getFunctionManager().getFunctionAt(addr) != null) {
+                return "A function already exists at " + addr;
+            }
+            String fname = (name == null || name.isEmpty()) ? null : name;
+            CreateFunctionCmd cmd = new CreateFunctionCmd(fname, addr, null, SourceType.USER_DEFINED);
+            boolean ok = cmd.applyTo(program);
+            Function f = program.getFunctionManager().getFunctionAt(addr);
+            return (ok && f != null) ? "Created function " + f.getName() + " at " + addr
+                                     : "Failed to create function: " + cmd.getStatusMsg();
+        });
+    }
+
+    private String deleteFunctionAt(String addressStr) {
+        if (addressStr == null || addressStr.isEmpty()) return "address is required";
+        return runInTransaction("Delete function", () -> {
+            Program program = getCurrentProgram();
+            Address addr = program.getAddressFactory().getAddress(addressStr);
+            if (addr == null) return "Invalid address: " + addressStr;
+            Function f = getFunctionForAddress(program, addr);
+            if (f == null) return "No function at or containing " + addressStr;
+            Address entry = f.getEntryPoint();
+            boolean ok = program.getFunctionManager().removeFunction(entry);
+            return ok ? "Deleted function at " + entry : "Failed to delete function at " + entry;
+        });
+    }
+
+    private String defineCode(String addressStr) {
+        if (addressStr == null || addressStr.isEmpty()) return "address is required";
+        return runInTransaction("Disassemble", () -> {
+            Program program = getCurrentProgram();
+            Address addr = program.getAddressFactory().getAddress(addressStr);
+            if (addr == null) return "Invalid address: " + addressStr;
+            DisassembleCommand cmd = new DisassembleCommand(addr, null, true);
+            boolean ok = cmd.applyTo(program);
+            return ok ? "Disassembled at " + addr : "Failed to disassemble: " + cmd.getStatusMsg();
+        });
+    }
+
+    private String createLabel(String addressStr, String name) {
+        if (addressStr == null || addressStr.isEmpty()) return "address is required";
+        if (name == null || name.isEmpty()) return "name is required";
+        return runInTransaction("Create label", () -> {
+            Program program = getCurrentProgram();
+            Address addr = program.getAddressFactory().getAddress(addressStr);
+            if (addr == null) return "Invalid address: " + addressStr;
+            program.getSymbolTable().createLabel(addr, name, SourceType.USER_DEFINED);
+            return "Created label '" + name + "' at " + addr;
+        });
+    }
+
+    private String renameLabel(String addressStr, String oldName, String newName) {
+        if (addressStr == null || addressStr.isEmpty()) return "address is required";
+        if (oldName == null || oldName.isEmpty() || newName == null || newName.isEmpty()) {
+            return "old_name and new_name are required";
+        }
+        return runInTransaction("Rename label", () -> {
+            Program program = getCurrentProgram();
+            Address addr = program.getAddressFactory().getAddress(addressStr);
+            if (addr == null) return "Invalid address: " + addressStr;
+            for (Symbol s : program.getSymbolTable().getSymbols(addr)) {
+                if (s.getName().equals(oldName)) {
+                    s.setName(newName, SourceType.USER_DEFINED);
+                    return "Renamed label to '" + newName + "' at " + addr;
+                }
+            }
+            return "Label '" + oldName + "' not found at " + addr;
+        });
+    }
+
+    private String removeLabel(String addressStr, String name) {
+        if (addressStr == null || addressStr.isEmpty()) return "address is required";
+        if (name == null || name.isEmpty()) return "name is required";
+        return runInTransaction("Remove label", () -> {
+            Program program = getCurrentProgram();
+            Address addr = program.getAddressFactory().getAddress(addressStr);
+            if (addr == null) return "Invalid address: " + addressStr;
+            for (Symbol s : program.getSymbolTable().getSymbols(addr)) {
+                if (s.getName().equals(name)) {
+                    boolean ok = s.delete();
+                    return ok ? "Removed label '" + name + "' at " + addr
+                              : "Failed to remove label '" + name + "'";
+                }
+            }
+            return "Label '" + name + "' not found at " + addr;
+        });
+    }
+
+    // ----------------------------------------------------------------------------------
+    // Group E: comments & bookmarks
+    // ----------------------------------------------------------------------------------
+
+    private CommentType commentTypeFromString(String t) {
+        if (t == null) return null;
+        switch (t.toLowerCase()) {
+            case "plate":      return CommentType.PLATE;
+            case "pre":        return CommentType.PRE;
+            case "eol":        return CommentType.EOL;
+            case "post":       return CommentType.POST;
+            case "repeatable": return CommentType.REPEATABLE;
+            default:           return null;
+        }
+    }
+
+    private String setComment(String addressStr, String commentType, String text) {
+        if (addressStr == null || addressStr.isEmpty()) return "address is required";
+        CommentType ct = commentTypeFromString(commentType);
+        if (ct == null) return "comment_type must be one of: plate, pre, eol, post, repeatable";
+        return runInTransaction("Set comment", () -> {
+            Program program = getCurrentProgram();
+            Address addr = program.getAddressFactory().getAddress(addressStr);
+            if (addr == null) return "Invalid address: " + addressStr;
+            program.getListing().setComment(addr, ct, text);
+            return "Set " + commentType + " comment at " + addr;
+        });
+    }
+
+    private String setBookmark(String addressStr, String category, String note, String type) {
+        if (addressStr == null || addressStr.isEmpty()) return "address is required";
+        return runInTransaction("Set bookmark", () -> {
+            Program program = getCurrentProgram();
+            Address addr = program.getAddressFactory().getAddress(addressStr);
+            if (addr == null) return "Invalid address: " + addressStr;
+            String bt = (type == null || type.isEmpty()) ? "Note" : type;
+            program.getBookmarkManager().setBookmark(addr, bt,
+                category == null ? "" : category, note == null ? "" : note);
+            return "Set bookmark at " + addr;
+        });
+    }
+
+    private String listBookmarks(int offset, int limit) {
+        Program program = getCurrentProgram();
+        if (program == null) return "No program loaded";
+        List<String> lines = new ArrayList<>();
+        Iterator<Bookmark> it = program.getBookmarkManager().getBookmarksIterator();
+        while (it.hasNext()) {
+            Bookmark b = it.next();
+            lines.add(String.format("%s | %s | %s | %s",
+                b.getAddress(), b.getTypeString(), b.getCategory(), b.getComment()));
+        }
+        return paginateList(lines, offset, limit);
+    }
+
+    // ----------------------------------------------------------------------------------
+    // Group F: patching
+    // ----------------------------------------------------------------------------------
+
+    private String assembleInstruction(String addressStr, String instruction) {
+        if (addressStr == null || addressStr.isEmpty()) return "address is required";
+        if (instruction == null || instruction.isEmpty()) return "instruction is required";
+        return runInTransaction("Assemble instruction", () -> {
+            Program program = getCurrentProgram();
+            Address addr = program.getAddressFactory().getAddress(addressStr);
+            if (addr == null) return "Invalid address: " + addressStr;
+            Assembler asm = Assemblers.getAssembler(program);
+            asm.assemble(addr, instruction);
+            return "Assembled '" + instruction + "' at " + addr;
+        });
+    }
+
+    private String patchBytes(String addressStr, String hexBytes) {
+        if (addressStr == null || addressStr.isEmpty()) return "address is required";
+        if (hexBytes == null || hexBytes.isEmpty()) return "hex_bytes is required";
+        return runInTransaction("Patch bytes", () -> {
+            Program program = getCurrentProgram();
+            Address addr = program.getAddressFactory().getAddress(addressStr);
+            if (addr == null) return "Invalid address: " + addressStr;
+            String clean = hexBytes.replaceAll("[^0-9a-fA-F]", "");
+            if (clean.isEmpty() || clean.length() % 2 != 0) {
+                return "hex_bytes must be an even number of hex digits";
+            }
+            byte[] bytes = new byte[clean.length() / 2];
+            for (int i = 0; i < bytes.length; i++) {
+                bytes[i] = (byte) Integer.parseInt(clean.substring(i * 2, i * 2 + 2), 16);
+            }
+            program.getMemory().setBytes(addr, bytes);
+            return "Patched " + bytes.length + " byte(s) at " + addr;
+        });
+    }
+
     /**
      * Resolves a data type by name, handling common types and pointer types
      * @param dtm The data type manager
@@ -1600,6 +2415,26 @@ public class GhidraMCPPlugin extends Plugin {
         if (val == null) return defaultValue;
         try {
             return Integer.parseInt(val);
+        }
+        catch (NumberFormatException e) {
+            return defaultValue;
+        }
+    }
+
+    /**
+     * Parse a long from a string (decimal, or 0x-prefixed hex), or return defaultValue.
+     */
+    private long parseLongOrDefault(String val, long defaultValue) {
+        if (val == null) return defaultValue;
+        try {
+            String v = val.trim();
+            if (v.startsWith("0x") || v.startsWith("0X")) {
+                return Long.parseLong(v.substring(2), 16);
+            }
+            if (v.startsWith("-0x") || v.startsWith("-0X")) {
+                return -Long.parseLong(v.substring(3), 16);
+            }
+            return Long.parseLong(v);
         }
         catch (NumberFormatException e) {
             return defaultValue;

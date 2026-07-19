@@ -52,3 +52,6 @@ replay_pid*
 # Third party JAR files from Ghidra
 lib/*.jar
 
+
+.venv/
+__pycache__

@@ -23,7 +23,14 @@ mcp = FastMCP("ghidra-mcp")
 # Initialize ghidra_server_url with default value
 ghidra_server_url = DEFAULT_GHIDRA_SERVER
 
-def safe_get(endpoint: str, params: dict = None) -> list:
+# Request timeouts (seconds). Most endpoints answer in well under a second, but some
+# operations are heavy: anything that runs the decompiler (rename/type on locals, prototypes)
+# or builds the SLEIGH assembler (assemble_instruction) can take much longer, especially on
+# first use. Heavy tools pass HEAVY_TIMEOUT explicitly.
+DEFAULT_TIMEOUT = 10
+HEAVY_TIMEOUT = 120
+
+def safe_get(endpoint: str, params: dict = None, timeout: float = DEFAULT_TIMEOUT) -> list:
     """
     Perform a GET request with optional query parameters.
     """
@@ -33,7 +40,7 @@ def safe_get(endpoint: str, params: dict = None) -> list:
     url = urljoin(ghidra_server_url, endpoint)
 
     try:
-        response = requests.get(url, params=params, timeout=5)
+        response = requests.get(url, params=params, timeout=timeout)
         response.encoding = 'utf-8'
         if response.ok:
             return response.text.splitlines()
@@ -42,13 +49,13 @@ def safe_get(endpoint: str, params: dict = None) -> list:
     except Exception as e:
         return [f"Request failed: {str(e)}"]
 
-def safe_post(endpoint: str, data: dict | str) -> str:
+def safe_post(endpoint: str, data: dict | str, timeout: float = DEFAULT_TIMEOUT) -> str:
     try:
         url = urljoin(ghidra_server_url, endpoint)
         if isinstance(data, dict):
-            response = requests.post(url, data=data, timeout=5)
+            response = requests.post(url, data=data, timeout=timeout)
         else:
-            response = requests.post(url, data=data.encode("utf-8"), timeout=5)
+            response = requests.post(url, data=data.encode("utf-8"), timeout=timeout)
         response.encoding = 'utf-8'
         if response.ok:
             return response.text.strip()
@@ -76,7 +83,7 @@ def decompile_function(name: str) -> str:
     """
     Decompile a specific function by name and return the decompiled C code.
     """
-    return safe_post("decompile", name)
+    return safe_post("decompile", name, timeout=HEAVY_TIMEOUT)
 
 @mcp.tool()
 def rename_function(old_name: str, new_name: str) -> str:
@@ -145,7 +152,7 @@ def rename_variable(function_name: str, old_name: str, new_name: str) -> str:
         "functionName": function_name,
         "oldName": old_name,
         "newName": new_name
-    })
+    }, timeout=HEAVY_TIMEOUT)
 
 @mcp.tool()
 def get_function_by_address(address: str) -> str:
@@ -180,7 +187,7 @@ def decompile_function_by_address(address: str) -> str:
     """
     Decompile a function at the given address.
     """
-    return "\n".join(safe_get("decompile_function", {"address": address}))
+    return "\n".join(safe_get("decompile_function", {"address": address}, timeout=HEAVY_TIMEOUT))
 
 @mcp.tool()
 def disassemble_function(address: str) -> list:
@@ -215,14 +222,14 @@ def set_function_prototype(function_address: str, prototype: str) -> str:
     """
     Set a function's prototype.
     """
-    return safe_post("set_function_prototype", {"function_address": function_address, "prototype": prototype})
+    return safe_post("set_function_prototype", {"function_address": function_address, "prototype": prototype}, timeout=HEAVY_TIMEOUT)
 
 @mcp.tool()
 def set_local_variable_type(function_address: str, variable_name: str, new_type: str) -> str:
     """
     Set a local variable's type.
     """
-    return safe_post("set_local_variable_type", {"function_address": function_address, "variable_name": variable_name, "new_type": new_type})
+    return safe_post("set_local_variable_type", {"function_address": function_address, "variable_name": variable_name, "new_type": new_type}, timeout=HEAVY_TIMEOUT)
 
 @mcp.tool()
 def get_xrefs_to(address: str, offset: int = 0, limit: int = 100) -> list:
@@ -286,6 +293,356 @@ def list_strings(offset: int = 0, limit: int = 2000, filter: str = None) -> list
     if filter:
         params["filter"] = filter
     return safe_get("strings", params)
+
+@mcp.tool()
+def create_struct(name: str, category: str = None) -> str:
+    """
+    Create a new (empty) structure data type.
+
+    Args:
+        name: Name of the structure to create
+        category: Optional data type category path (e.g. "/MyTypes"), defaults to root "/"
+
+    Returns:
+        Result message with the created struct's path
+    """
+    data = {"name": name}
+    if category:
+        data["category"] = category
+    return safe_post("create_struct", data)
+
+@mcp.tool()
+def add_struct_field(struct_name: str, field_name: str, field_type: str, offset: int = -1) -> str:
+    """
+    Add a field to an existing structure.
+
+    Args:
+        struct_name: Name of the structure to modify
+        field_name: Name of the new field (may be empty for an unnamed field)
+        field_type: Data type of the field (e.g. "int", "char *", "uint")
+        offset: Byte offset to insert at; -1 (default) appends to the end
+
+    Returns:
+        Result message with the structure's new size
+    """
+    return safe_post("add_struct_field", {
+        "struct_name": struct_name,
+        "field_name": field_name,
+        "field_type": field_type,
+        "offset": offset,
+    })
+
+@mcp.tool()
+def edit_struct_field(struct_name: str, field: str, new_name: str = None, new_type: str = None) -> str:
+    """
+    Edit an existing structure field's name and/or type. Only provided attributes change.
+
+    Args:
+        struct_name: Name of the structure to modify
+        field: Field identifier - either its current name or its numeric ordinal
+        new_name: Optional new field name
+        new_type: Optional new field type (e.g. "uint", "long")
+
+    Returns:
+        Result message describing the change
+    """
+    data = {"struct_name": struct_name, "field": field}
+    if new_name is not None:
+        data["new_name"] = new_name
+    if new_type is not None:
+        data["new_type"] = new_type
+    return safe_post("edit_struct_field", data)
+
+@mcp.tool()
+def delete_struct_field(struct_name: str, field: str) -> str:
+    """
+    Delete a field from a structure.
+
+    Args:
+        struct_name: Name of the structure to modify
+        field: Field identifier - either its name or its numeric ordinal
+
+    Returns:
+        Result message with the structure's new size
+    """
+    return safe_post("delete_struct_field", {"struct_name": struct_name, "field": field})
+
+@mcp.tool()
+def rename_struct(old_name: str, new_name: str) -> str:
+    """
+    Rename a structure data type.
+    """
+    return safe_post("rename_struct", {"old_name": old_name, "new_name": new_name})
+
+@mcp.tool()
+def delete_struct(name: str) -> str:
+    """
+    Delete a structure data type from the program's data type manager.
+    """
+    return safe_post("delete_struct", {"name": name})
+
+@mcp.tool()
+def get_struct(name: str) -> str:
+    """
+    Get the layout of a structure: for each field its ordinal, offset, length, type and name,
+    plus the total size.
+
+    Args:
+        name: Name of the structure to inspect
+
+    Returns:
+        Human-readable structure layout
+    """
+    return "\n".join(safe_get("get_struct", {"name": name}))
+
+# ---------------------------------------------------------------------------
+# Group B: other data types (enum / union / typedef / browse)
+# ---------------------------------------------------------------------------
+
+@mcp.tool()
+def create_enum(name: str, size: int = 4, category: str = None) -> str:
+    """
+    Create a new (empty) enum data type.
+
+    Args:
+        name: Name of the enum
+        size: Storage size in bytes (1, 2, 4 or 8), default 4
+        category: Optional data type category path (e.g. "/MyTypes")
+    """
+    data = {"name": name, "size": size}
+    if category:
+        data["category"] = category
+    return safe_post("create_enum", data)
+
+@mcp.tool()
+def add_enum_value(enum_name: str, value_name: str, value: int) -> str:
+    """
+    Add a (name = value) member to an existing enum.
+    """
+    return safe_post("add_enum_value", {
+        "enum_name": enum_name, "value_name": value_name, "value": value})
+
+@mcp.tool()
+def delete_enum_value(enum_name: str, value_name: str) -> str:
+    """
+    Remove a member from an enum by its name.
+    """
+    return safe_post("delete_enum_value", {"enum_name": enum_name, "value_name": value_name})
+
+@mcp.tool()
+def create_union(name: str, category: str = None) -> str:
+    """
+    Create a new (empty) union data type.
+
+    Args:
+        name: Name of the union
+        category: Optional data type category path
+    """
+    data = {"name": name}
+    if category:
+        data["category"] = category
+    return safe_post("create_union", data)
+
+@mcp.tool()
+def add_union_field(union_name: str, field_name: str, field_type: str) -> str:
+    """
+    Add a field to an existing union.
+
+    Args:
+        union_name: Name of the union to modify
+        field_name: Name of the new field (may be empty for unnamed)
+        field_type: Data type of the field (e.g. "int", "char *")
+    """
+    return safe_post("add_union_field", {
+        "union_name": union_name, "field_name": field_name, "field_type": field_type})
+
+@mcp.tool()
+def create_typedef(name: str, base_type: str, category: str = None) -> str:
+    """
+    Create a typedef (type alias) for an existing base type.
+
+    Args:
+        name: Name of the new typedef
+        base_type: The underlying type it aliases (e.g. "uint", "MyStruct *")
+        category: Optional data type category path
+    """
+    data = {"name": name, "base_type": base_type}
+    if category:
+        data["category"] = category
+    return safe_post("create_typedef", data)
+
+@mcp.tool()
+def list_data_types(category: str = None, filter: str = None, offset: int = 0, limit: int = 100) -> list:
+    """
+    List data types in the program's data type manager as "path | kind | size".
+
+    Args:
+        category: Optional category path prefix to restrict results (e.g. "/CustomStructs")
+        filter: Optional substring to match within the type name
+        offset: Pagination offset
+        limit: Maximum number of entries to return
+    """
+    params = {"offset": offset, "limit": limit}
+    if category:
+        params["category"] = category
+    if filter:
+        params["filter"] = filter
+    return safe_get("list_data_types", params)
+
+@mcp.tool()
+def get_type(name: str) -> str:
+    """
+    Dump any data type by name: struct/union layout, enum members, typedef target,
+    or a summary for primitives.
+    """
+    return "\n".join(safe_get("get_type", {"name": name}))
+
+# ---------------------------------------------------------------------------
+# Group C: apply data types to memory
+# ---------------------------------------------------------------------------
+
+@mcp.tool()
+def apply_data_type(address: str, type_name: str, clear_existing: bool = True) -> str:
+    """
+    Apply/define a data type at a memory address (e.g. lay a struct over data).
+
+    Args:
+        address: Target address in hex (e.g. "0x124000")
+        type_name: Name of the data type to apply
+        clear_existing: Clear conflicting existing code/data first (default True)
+    """
+    return safe_post("apply_data_type", {
+        "address": address, "type_name": type_name,
+        "clear_existing": "true" if clear_existing else "false"})
+
+@mcp.tool()
+def create_array(address: str, type_name: str, count: int) -> str:
+    """
+    Define an array of `count` elements of `type_name` at an address.
+    """
+    return safe_post("create_array", {
+        "address": address, "type_name": type_name, "count": count})
+
+@mcp.tool()
+def clear_data(address: str) -> str:
+    """
+    Clear the defined data / code unit at an address.
+    """
+    return safe_post("clear_data", {"address": address})
+
+# ---------------------------------------------------------------------------
+# Group D: code & symbols
+# ---------------------------------------------------------------------------
+
+@mcp.tool()
+def create_function(address: str, name: str = None) -> str:
+    """
+    Create a function at an address (Ghidra determines the body). Optional name.
+    """
+    data = {"address": address}
+    if name:
+        data["name"] = name
+    return safe_post("create_function", data)
+
+@mcp.tool()
+def delete_function(address: str) -> str:
+    """
+    Delete the function at or containing an address.
+    """
+    return safe_post("delete_function", {"address": address})
+
+@mcp.tool()
+def define_code(address: str) -> str:
+    """
+    Disassemble (define code at) undefined bytes starting at an address.
+    """
+    return safe_post("define_code", {"address": address})
+
+@mcp.tool()
+def create_label(address: str, name: str) -> str:
+    """
+    Create a label (symbol) at an address.
+    """
+    return safe_post("create_label", {"address": address, "name": name})
+
+@mcp.tool()
+def rename_label(address: str, old_name: str, new_name: str) -> str:
+    """
+    Rename an existing label at an address.
+    """
+    return safe_post("rename_label", {
+        "address": address, "old_name": old_name, "new_name": new_name})
+
+@mcp.tool()
+def remove_label(address: str, name: str) -> str:
+    """
+    Remove a label at an address by name.
+    """
+    return safe_post("remove_label", {"address": address, "name": name})
+
+# ---------------------------------------------------------------------------
+# Group E: comments & bookmarks
+# ---------------------------------------------------------------------------
+
+@mcp.tool()
+def set_comment(address: str, comment_type: str, text: str) -> str:
+    """
+    Set a comment at an address.
+
+    Args:
+        address: Target address in hex
+        comment_type: One of "plate", "pre", "eol", "post", "repeatable"
+        text: Comment text (empty string clears it)
+    """
+    return safe_post("set_comment", {
+        "address": address, "comment_type": comment_type, "text": text})
+
+@mcp.tool()
+def set_bookmark(address: str, category: str = "", note: str = "", type: str = "Note") -> str:
+    """
+    Set a bookmark at an address.
+
+    Args:
+        address: Target address in hex
+        category: Bookmark category (free text)
+        note: Bookmark comment
+        type: Bookmark type, default "Note"
+    """
+    return safe_post("set_bookmark", {
+        "address": address, "category": category, "note": note, "type": type})
+
+@mcp.tool()
+def list_bookmarks(offset: int = 0, limit: int = 100) -> list:
+    """
+    List all bookmarks as "address | type | category | comment".
+    """
+    return safe_get("list_bookmarks", {"offset": offset, "limit": limit})
+
+# ---------------------------------------------------------------------------
+# Group F: patching
+# ---------------------------------------------------------------------------
+
+@mcp.tool()
+def assemble_instruction(address: str, instruction: str) -> str:
+    """
+    Assemble a single instruction and patch it into memory at an address.
+
+    Args:
+        address: Target address in hex
+        instruction: Assembly text (e.g. "MOV EAX, 0x1")
+    """
+    return safe_post("assemble_instruction", {"address": address, "instruction": instruction}, timeout=HEAVY_TIMEOUT)
+
+@mcp.tool()
+def patch_bytes(address: str, hex_bytes: str) -> str:
+    """
+    Overwrite raw bytes at an address.
+
+    Args:
+        address: Target address in hex
+        hex_bytes: Bytes as a hex string (e.g. "90 90" or "9090")
+    """
+    return safe_post("patch_bytes", {"address": address, "hex_bytes": hex_bytes})
 
 def main():
     parser = argparse.ArgumentParser(description="MCP server for Ghidra")
