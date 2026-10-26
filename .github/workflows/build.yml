@@ -1,61 +1,63 @@
-name: Build with Maven
+name: Build and test
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [main]
   pull_request:
-    branches: [ "main" ]
+    branches: [main]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      GHIDRA_VERSION: 11.3.2
-      GHIDRA_DATE: 20250415
-      GHIDRA_LIBS: >-
-        Features/Base/lib/Base.jar
-        Features/Decompiler/lib/Decompiler.jar
-        Framework/Docking/lib/Docking.jar
-        Framework/Generic/lib/Generic.jar
-        Framework/Project/lib/Project.jar
-        Framework/SoftwareModeling/lib/SoftwareModeling.jar
-        Framework/Utility/lib/Utility.jar
-        Framework/Gui/lib/Gui.jar
-
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up JDK 21
-      uses: actions/setup-java@v4
-      with:
-        java-version: '21'
-        distribution: 'temurin'
-        cache: maven
-
-    - name: Download Ghidra
-      run: |
-        wget --no-verbose -O ghidra.zip https://github.com/NationalSecurityAgency/ghidra/releases/download/Ghidra_${{ env.GHIDRA_VERSION }}_build/ghidra_${{ env.GHIDRA_VERSION }}_PUBLIC_${{ env.GHIDRA_DATE }}.zip
-        7z x -bd ghidra.zip
-
-    - name: Copy Ghidra libs
-      run: |
-        mkdir -p ./lib
-        for libfile in ${{ env.GHIDRA_LIBS }}
-          do echo "Copying ${libfile} to lib/"
-          cp ghidra_${{ env.GHIDRA_VERSION }}_PUBLIC/Ghidra/${libfile} ./lib/
-        done
-
-    - name: Build with Maven
-      run: mvn clean package assembly:single
-
-    - name: Assemble release directory
-      run: |
-        mkdir release
-        cp target/GhidraMCP-*-SNAPSHOT.zip release/
-        cp bridge_mcp_ghidra.py release/
-
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: GhidraMCP-artifact
-        path: |
-          release/*
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: temurin
+          cache: maven
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+          cache: pip
+          cache-dependency-path: requirements.lock
+      - name: Install Python dependencies
+        run: |
+          python -m pip install -r requirements.txt
+          python -m pip check
+      - name: Test bridge
+        run: python -m unittest discover -s tests/python -v
+      - name: Download verified Ghidra
+        run: python scripts/download_ghidra.py "$RUNNER_TEMP/ghidra"
+      - name: Build extension
+        run: python scripts/build.py --ghidra-home "$RUNNER_TEMP/ghidra/ghidra_12.2_PUBLIC"
+      - name: Prepare analyzed fixture project
+        run: >-
+          python scripts/prepare_test_project.py
+          --ghidra-home "$RUNNER_TEMP/ghidra/ghidra_12.2_PUBLIC"
+          --output-dir "$RUNNER_TEMP/ghidra-fixtures"
+      - name: Test against Ghidra runtime
+        run: >-
+          python scripts/run_ghidra_tests.py
+          --ghidra-home "$RUNNER_TEMP/ghidra/ghidra_12.2_PUBLIC"
+          --project "$RUNNER_TEMP/ghidra-fixtures/projects/FixtureProject.gpr"
+          --smoke ResearchSmoke MutationSmoke AnalysisSmoke ProjectSmoke
+          --output-dir "$RUNNER_TEMP/ghidra-tests"
+      - name: Upload integration test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ghidra-runtime-tests
+          if-no-files-found: ignore
+          path: |
+            ${{ runner.temp }}/ghidra-fixtures/*.log
+            ${{ runner.temp }}/ghidra-fixtures/fixture.json
+            ${{ runner.temp }}/ghidra-tests/results.json
+            ${{ runner.temp }}/ghidra-tests/*/console.log
+            ${{ runner.temp }}/ghidra-tests/*/report.json
+      - name: Assemble release
+        run: python scripts/package_release.py --output-dir release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GhidraMCP-12.2
+          path: release/

@@ -1,0 +1,4363 @@
+{
+  "api_version": 2,
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "request_id": {
+        "type": "string",
+        "minLength": 1
+      },
+      "server_id": {
+        "type": "string",
+        "minLength": 1
+      },
+      "program_id": {
+        "type": "string",
+        "minLength": 1
+      },
+      "revision": {
+        "type": "string",
+        "minLength": 1
+      },
+      "data": {},
+      "error": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "message": {
+            "type": "string"
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "details": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ]
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "warnings": {
+        "type": "array"
+      }
+    }
+  },
+  "tools": [
+    {
+      "name": "get_server_info",
+      "description": "Read backend version, identity, capabilities, read-only mode and operation limits.",
+      "effect": "read",
+      "detached": false,
+      "program_required": false,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "list_projects",
+      "description": "List the active project; returns zero or one project in this server.",
+      "effect": "read",
+      "detached": false,
+      "program_required": false,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "get_project_info",
+      "description": "Read metadata of the specified project.",
+      "effect": "read",
+      "detached": false,
+      "program_required": false,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "project_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "create_project",
+      "description": "Create a new project without overwriting any existing project.",
+      "effect": "project_write",
+      "detached": false,
+      "program_required": false,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "directory": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "directory",
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "open_project",
+      "description": "Open an existing project. A different active project must be closed explicitly.",
+      "effect": "session",
+      "detached": false,
+      "program_required": false,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "directory": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "directory",
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "close_project",
+      "description": "Close an unused project without silently saving or discarding changes.",
+      "effect": "session",
+      "detached": false,
+      "program_required": false,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "project_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "list_project_files",
+      "description": "List project files/folders, including programs not loaded in memory.",
+      "effect": "read",
+      "detached": false,
+      "program_required": false,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "default": "/"
+          },
+          "recursive": {
+            "type": "boolean",
+            "default": false
+          },
+          "query": {
+            "type": "string"
+          },
+          "cursor": {
+            "type": "string",
+            "minLength": 1
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000,
+            "default": 100
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "project_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "create_project_folder",
+      "description": "Create a folder inside the specified project.",
+      "effect": "project_write",
+      "detached": false,
+      "program_required": false,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "project_id",
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "get_import_options",
+      "description": "Inspect supported import loaders, language/compiler specifications and typed loader options. Optional loader and language/compiler filters show options for a custom import specification; options are keyed by their exact arg names.",
+      "effect": "read",
+      "detached": false,
+      "program_required": false,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "source_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          },
+          "loader": {
+            "type": "string",
+            "minLength": 1
+          },
+          "language_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "compiler_spec_id": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "source_path"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "import_program",
+      "description": "Import a local binary without overwriting a project file. Returns a job. Optional initial analysis is a separate job.",
+      "effect": "project_write",
+      "detached": true,
+      "program_required": false,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "destination_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "loader": {
+            "type": "string",
+            "minLength": 1
+          },
+          "language_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "compiler_spec_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "options": {
+            "type": "object"
+          },
+          "analysis": {
+            "type": "string",
+            "enum": [
+              "none",
+              "if_needed"
+            ],
+            "default": "none"
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 300000
+          }
+        },
+        "required": [
+          "project_id",
+          "source_path",
+          "destination_path"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "list_programs",
+      "description": "List all live programs, including background programs, deduplicated across GUI windows.",
+      "effect": "read",
+      "detached": false,
+      "program_required": false,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "cursor": {
+            "type": "string",
+            "minLength": 1
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000,
+            "default": 100
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "open_program",
+      "description": "Load a project program in the background and hold it for MCP. Reuses an existing Program; does not open a GUI window.",
+      "effect": "session",
+      "detached": false,
+      "program_required": false,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "project_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "allow_upgrade": {
+            "type": "boolean",
+            "default": false
+          },
+          "analysis": {
+            "type": "string",
+            "enum": [
+              "none",
+              "if_needed"
+            ],
+            "default": "none"
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "project_id",
+          "project_path"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "get_program_info",
+      "description": "Read identity, architecture, hashes, image base, revision, dirty state and GUI/MCP ownership.",
+      "effect": "read",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "save_program",
+      "description": "Explicitly save the selected program and return its saved revision.",
+      "effect": "save",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected_revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "close_program",
+      "description": "Release MCP ownership. A program still open in a GUI remains live. Never silently discard unsaved changes.",
+      "effect": "session",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "discard_changes": {
+            "type": "boolean",
+            "default": false
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "list_functions",
+      "description": "List functions sorted by address, optionally filtering by name and namespace.",
+      "effect": "read",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "query": {
+            "type": "string"
+          },
+          "namespace": {
+            "type": "string",
+            "minLength": 1
+          },
+          "cursor": {
+            "type": "string",
+            "minLength": 1
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000,
+            "default": 100
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "get_function",
+      "description": "Find the function containing an address or require an exact function entry.",
+      "effect": "read",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "address": {
+            "type": "string",
+            "minLength": 1
+          },
+          "match": {
+            "type": "string",
+            "enum": [
+              "containing",
+              "entry"
+            ],
+            "default": "containing"
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "address"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "decompile_function",
+      "description": "Decompile a function by its entry address without changing the program or GUI.",
+      "effect": "read",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "function_address": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "function_address"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "disassemble_function",
+      "description": "Read existing instructions in all ranges of the function body.",
+      "effect": "read",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "function_address": {
+            "type": "string",
+            "minLength": 1
+          },
+          "cursor": {
+            "type": "string",
+            "minLength": 1
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000,
+            "default": 100
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "function_address"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "list_variables",
+      "description": "List decompiler variables with revision-bound variable IDs for later edits.",
+      "effect": "read",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "function_address": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "decompiler"
+            ],
+            "default": "decompiler"
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          },
+          "cursor": {
+            "type": "string",
+            "minLength": 1
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000,
+            "default": 100
+          }
+        },
+        "required": [
+          "program_id",
+          "function_address"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "list_symbols",
+      "description": "List program symbols with their addresses, kinds and namespaces.",
+      "effect": "read",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "query": {
+            "type": "string"
+          },
+          "namespace": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "type": "string",
+            "minLength": 1
+          },
+          "cursor": {
+            "type": "string",
+            "minLength": 1
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000,
+            "default": 100
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "list_namespaces",
+      "description": "List namespaces and classes.",
+      "effect": "read",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "query": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "all",
+              "class",
+              "namespace"
+            ],
+            "default": "all"
+          },
+          "cursor": {
+            "type": "string",
+            "minLength": 1
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000,
+            "default": 100
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "list_imports",
+      "description": "List imported libraries/symbols and local linkage addresses.",
+      "effect": "read",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "query": {
+            "type": "string"
+          },
+          "cursor": {
+            "type": "string",
+            "minLength": 1
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000,
+            "default": 100
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "list_exports",
+      "description": "List exported symbols and addresses.",
+      "effect": "read",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "query": {
+            "type": "string"
+          },
+          "cursor": {
+            "type": "string",
+            "minLength": 1
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000,
+            "default": 100
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "list_data_items",
+      "description": "List defined data items, types and bounded values.",
+      "effect": "read",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "query": {
+            "type": "string"
+          },
+          "cursor": {
+            "type": "string",
+            "minLength": 1
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000,
+            "default": 100
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "list_strings",
+      "description": "List already defined strings with addresses, encoding and lengths.",
+      "effect": "read",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "query": {
+            "type": "string"
+          },
+          "encoding": {
+            "type": "string",
+            "minLength": 1
+          },
+          "cursor": {
+            "type": "string",
+            "minLength": 1
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000,
+            "default": 100
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "search_memory",
+      "description": "Find byte patterns in memory. Bounds use [start, end); pattern and mask are hexadecimal strings.",
+      "effect": "read",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "pattern": {
+            "type": "string",
+            "minLength": 1
+          },
+          "mask": {
+            "type": "string",
+            "minLength": 1
+          },
+          "start": {
+            "type": "string",
+            "minLength": 1
+          },
+          "end": {
+            "type": "string",
+            "minLength": 1
+          },
+          "cursor": {
+            "type": "string",
+            "minLength": 1
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000,
+            "default": 100
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "pattern"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "get_result_chunk",
+      "description": "Read another chunk of a cached result from the same program/revision. Text offsets count Unicode code points.",
+      "effect": "read",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "result_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "length": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65536
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "result_id",
+          "offset",
+          "length"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "read_memory",
+      "description": "Read up to 64 KiB of image bytes. Partial reads return address-qualified chunks and gaps.",
+      "effect": "read",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "address": {
+            "type": "string",
+            "minLength": 1
+          },
+          "length": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65536
+          },
+          "allow_partial": {
+            "type": "boolean",
+            "default": false
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "address",
+          "length"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "disassemble_range",
+      "description": "Read a bounded instruction range without defining code; optional pseudo-disassembly of undefined bytes.",
+      "effect": "read",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "address": {
+            "type": "string",
+            "minLength": 1
+          },
+          "byte_length": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65536
+          },
+          "start_mode": {
+            "type": "string",
+            "enum": [
+              "exact",
+              "containing"
+            ],
+            "default": "exact"
+          },
+          "decode_undefined": {
+            "type": "boolean",
+            "default": false
+          },
+          "cursor": {
+            "type": "string",
+            "minLength": 1
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000,
+            "default": 100
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "address",
+          "byte_length"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "list_memory_regions",
+      "description": "List memory blocks, permissions, overlays, initialized ranges and original byte sources.",
+      "effect": "read",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "cursor": {
+            "type": "string",
+            "minLength": 1
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000,
+            "default": 100
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "address_to_file_offset",
+      "description": "Find all known file-offset mappings for an address; identify unbacked memory explicitly.",
+      "effect": "read",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "address": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "address"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "file_offset_to_address",
+      "description": "Find addresses backed by a source-file offset. File offsets are hexadecimal strings.",
+      "effect": "read",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_file_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "file_offset": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "source_file_id",
+          "file_offset"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "get_xrefs",
+      "description": "Read references to or from an address with source, target, kind and operand index.",
+      "effect": "read",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "address": {
+            "type": "string",
+            "minLength": 1
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "to",
+              "from"
+            ]
+          },
+          "kinds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "cursor": {
+            "type": "string",
+            "minLength": 1
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000,
+            "default": 100
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "address",
+          "direction"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "list_callers",
+      "description": "List static callsites, including source function and call instruction address; optional explicit cross-program scope.",
+      "effect": "read",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "function_address": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scope_program_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "cursor": {
+            "type": "string",
+            "minLength": 1
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000,
+            "default": 100
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "function_address"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "list_callees",
+      "description": "List static callsites, including source function and call instruction address; optional explicit cross-program scope.",
+      "effect": "read",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "function_address": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scope_program_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "cursor": {
+            "type": "string",
+            "minLength": 1
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000,
+            "default": 100
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "function_address"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "resolve_call_target",
+      "description": "Follow direct/thunk/PLT/external targets and report evidence, ambiguity, cycles or unresolved targets.",
+      "effect": "read",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "callsite_address": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scope_program_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "max_depth": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 64,
+            "default": 16
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "callsite_address"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "resolve_import",
+      "description": "Find candidate implementations of an imported symbol without changing external-library bindings.",
+      "effect": "read",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "external_library": {
+            "type": "string",
+            "minLength": 1
+          },
+          "symbol": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scope_program_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "external_library",
+          "symbol"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "set_import_library",
+      "description": "Assign one external location to a named dependency library, creating that library if needed. The reserved <EXTERNAL> library cannot be a target.",
+      "effect": "program_write",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected_revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          },
+          "external_address": {
+            "type": "string",
+            "minLength": 1
+          },
+          "external_library": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "program_id",
+          "external_address",
+          "external_library"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "set_external_library_path",
+      "description": "Bind an external library to an explicit file in the active project.",
+      "effect": "program_write",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "external_library": {
+            "type": "string",
+            "minLength": 1
+          },
+          "project_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "project_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected_revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "external_library",
+          "project_id",
+          "project_path"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "get_function_cfg",
+      "description": "Read basic blocks and outgoing CFG edges for a function, including unknown targets.",
+      "effect": "read",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "function_address": {
+            "type": "string",
+            "minLength": 1
+          },
+          "cursor": {
+            "type": "string",
+            "minLength": 1
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000,
+            "default": 100
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "function_address"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "get_pcode",
+      "description": "Read raw instruction P-code or high decompiler P-code, preserving varnode address spaces.",
+      "effect": "read",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "function_address": {
+            "type": "string",
+            "minLength": 1
+          },
+          "level": {
+            "type": "string",
+            "enum": [
+              "raw",
+              "high"
+            ],
+            "default": "raw"
+          },
+          "cursor": {
+            "type": "string",
+            "minLength": 1
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000,
+            "default": 100
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "function_address"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "rename_function",
+      "description": "Rename a function identified by entry address.",
+      "effect": "program_write",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "function_address": {
+            "type": "string",
+            "minLength": 1
+          },
+          "new_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected_revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "function_address",
+          "new_name"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "set_function_prototype",
+      "description": "Set a function signature in one transaction.",
+      "effect": "program_write",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "function_address": {
+            "type": "string",
+            "minLength": 1
+          },
+          "prototype": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected_revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "function_address",
+          "prototype"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "rename_variable",
+      "description": "Modify a variable using its revision-bound ID from list_variables.",
+      "effect": "program_write",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "function_address": {
+            "type": "string",
+            "minLength": 1
+          },
+          "variable_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "new_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected_revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "function_address",
+          "variable_id",
+          "new_name"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "set_local_variable_type",
+      "description": "Modify a variable using its revision-bound ID from list_variables.",
+      "effect": "program_write",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "function_address": {
+            "type": "string",
+            "minLength": 1
+          },
+          "variable_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected_revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "function_address",
+          "variable_id",
+          "type_path"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "create_function",
+      "description": "Create a function at an address.",
+      "effect": "program_write",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "address": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected_revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "address"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "delete_function",
+      "description": "Delete a function definition without deleting its bytes.",
+      "effect": "program_write",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "address": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected_revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "address"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "define_code",
+      "description": "Explicitly define instructions in an address+length range.",
+      "effect": "program_write",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "address": {
+            "type": "string",
+            "minLength": 1
+          },
+          "length": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1048576
+          },
+          "expected_revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "address",
+          "length"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "create_label",
+      "description": "Modify an explicitly addressed label in a namespace.",
+      "effect": "program_write",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "address": {
+            "type": "string",
+            "minLength": 1
+          },
+          "namespace": {
+            "type": "string",
+            "default": ""
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected_revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "address",
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "rename_label",
+      "description": "Modify an explicitly addressed label in a namespace.",
+      "effect": "program_write",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "address": {
+            "type": "string",
+            "minLength": 1
+          },
+          "namespace": {
+            "type": "string",
+            "default": ""
+          },
+          "old_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "new_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected_revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "address",
+          "old_name",
+          "new_name"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "remove_label",
+      "description": "Modify an explicitly addressed label in a namespace.",
+      "effect": "program_write",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "address": {
+            "type": "string",
+            "minLength": 1
+          },
+          "namespace": {
+            "type": "string",
+            "default": ""
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected_revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "address",
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "rename_data",
+      "description": "Rename the primary label of a defined data item.",
+      "effect": "program_write",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "address": {
+            "type": "string",
+            "minLength": 1
+          },
+          "new_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected_revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "address",
+          "new_name"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "set_comment",
+      "description": "Set a comment; empty text removes it.",
+      "effect": "program_write",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "address": {
+            "type": "string",
+            "minLength": 1
+          },
+          "comment_type": {
+            "type": "string",
+            "enum": [
+              "plate",
+              "pre",
+              "eol",
+              "post",
+              "repeatable"
+            ]
+          },
+          "text": {
+            "type": "string"
+          },
+          "expected_revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "address",
+          "comment_type",
+          "text"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "get_comments",
+      "description": "Read comments at an address.",
+      "effect": "read",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "address": {
+            "type": "string",
+            "minLength": 1
+          },
+          "comment_type": {
+            "type": "string",
+            "enum": [
+              "plate",
+              "pre",
+              "eol",
+              "post",
+              "repeatable"
+            ]
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "address"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "set_bookmark",
+      "description": "Set a bookmark at an address.",
+      "effect": "program_write",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "address": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type": {
+            "type": "string",
+            "minLength": 1,
+            "default": "Note"
+          },
+          "category": {
+            "type": "string",
+            "default": ""
+          },
+          "note": {
+            "type": "string",
+            "default": ""
+          },
+          "expected_revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "address"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "list_bookmarks",
+      "description": "List program bookmarks.",
+      "effect": "read",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type": {
+            "type": "string",
+            "minLength": 1
+          },
+          "category": {
+            "type": "string"
+          },
+          "query": {
+            "type": "string"
+          },
+          "cursor": {
+            "type": "string",
+            "minLength": 1
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000,
+            "default": 100
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "assemble_instruction",
+      "description": "Assemble one instruction into bytes without patching memory. Use patch_bytes to apply it.",
+      "effect": "read",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "address": {
+            "type": "string",
+            "minLength": 1
+          },
+          "instruction": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "address",
+          "instruction"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "patch_bytes",
+      "description": "Patch existing image bytes, optionally requiring expected bytes to match first.",
+      "effect": "program_write",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "address": {
+            "type": "string",
+            "minLength": 1
+          },
+          "bytes_hex": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected_bytes_hex": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected_revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "address",
+          "bytes_hex"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "list_data_types",
+      "description": "List data types by full category path.",
+      "effect": "read",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "category": {
+            "type": "string",
+            "minLength": 1
+          },
+          "query": {
+            "type": "string"
+          },
+          "cursor": {
+            "type": "string",
+            "minLength": 1
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000,
+            "default": 100
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "get_type",
+      "description": "Read the complete layout of a data type identified by its full path.",
+      "effect": "read",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "type_path"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "create_struct",
+      "description": "Create a data type at a full category/name path.",
+      "effect": "program_write",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected_revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "type_path"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "create_union",
+      "description": "Create a data type at a full category/name path.",
+      "effect": "program_write",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected_revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "type_path"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "create_enum",
+      "description": "Create a data type at a full category/name path.",
+      "effect": "program_write",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 8,
+            "default": 4
+          },
+          "expected_revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "type_path"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "create_typedef",
+      "description": "Create a data type at a full category/name path.",
+      "effect": "program_write",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "base_type_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected_revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "type_path",
+          "base_type_path"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "create_pointer",
+      "description": "Create or retrieve a pointer data type. Omit size to use the program architecture pointer size.",
+      "effect": "program_write",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "base_type_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected_revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 8
+          }
+        },
+        "required": [
+          "program_id",
+          "base_type_path"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "add_struct_field",
+      "description": "Add a structure field at an explicit byte offset, or append if omitted.",
+      "effect": "program_write",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "field_name": {
+            "type": "string"
+          },
+          "field_type_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "field_offset": {
+            "type": "integer",
+            "minimum": -1,
+            "default": -1
+          },
+          "expected_revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          },
+          "comment": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "program_id",
+          "type_path",
+          "field_type_path"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "edit_struct_field",
+      "description": "Modify a structure field selected by byte offset or ordinal.",
+      "effect": "program_write",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "field_offset": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "field_ordinal": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "new_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected_revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          },
+          "field_type_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "comment": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "program_id",
+          "type_path"
+        ],
+        "additionalProperties": false,
+        "oneOf": [
+          {
+            "required": [
+              "field_offset"
+            ],
+            "not": {
+              "required": [
+                "field_ordinal"
+              ]
+            }
+          },
+          {
+            "required": [
+              "field_ordinal"
+            ],
+            "not": {
+              "required": [
+                "field_offset"
+              ]
+            }
+          }
+        ],
+        "anyOf": [
+          {
+            "required": [
+              "new_name"
+            ]
+          },
+          {
+            "required": [
+              "field_type_path"
+            ]
+          },
+          {
+            "required": [
+              "comment"
+            ]
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "delete_struct_field",
+      "description": "Modify a structure field selected by byte offset or ordinal.",
+      "effect": "program_write",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "field_offset": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "field_ordinal": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "expected_revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "type_path"
+        ],
+        "additionalProperties": false,
+        "oneOf": [
+          {
+            "required": [
+              "field_offset"
+            ],
+            "not": {
+              "required": [
+                "field_ordinal"
+              ]
+            }
+          },
+          {
+            "required": [
+              "field_ordinal"
+            ],
+            "not": {
+              "required": [
+                "field_offset"
+              ]
+            }
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "rename_struct",
+      "description": "Rename a structure identified by full type path.",
+      "effect": "program_write",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "new_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected_revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "type_path",
+          "new_name"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "delete_struct",
+      "description": "Delete a structure type and update its references through Ghidra.",
+      "effect": "program_write",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected_revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "type_path"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "add_union_field",
+      "description": "Add a member to a union.",
+      "effect": "program_write",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "field_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "field_type_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected_revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "type_path",
+          "field_name",
+          "field_type_path"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "add_enum_value",
+      "description": "Add a named integer value to an enum.",
+      "effect": "program_write",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "value_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "value": {
+            "oneOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string",
+                "pattern": "^-?(?:0[xX][0-9a-fA-F]+|[0-9]+)$"
+              }
+            ]
+          },
+          "expected_revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "type_path",
+          "value_name",
+          "value"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "delete_enum_value",
+      "description": "Delete a named enum member.",
+      "effect": "program_write",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "value_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected_revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "type_path",
+          "value_name"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "apply_data_type",
+      "description": "Apply a data type at an address. Existing definitions are replaced only when explicitly requested.",
+      "effect": "program_write",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "address": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "clear_existing": {
+            "type": "boolean",
+            "default": false
+          },
+          "expected_revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "address",
+          "type_path"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "create_array",
+      "description": "Create an array definition at an address.",
+      "effect": "program_write",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "address": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1048576
+          },
+          "clear_existing": {
+            "type": "boolean",
+            "default": false
+          },
+          "expected_revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "address",
+          "type_path",
+          "count"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "clear_data",
+      "description": "Clear data definitions in a range without modifying bytes or instructions.",
+      "effect": "program_write",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "address": {
+            "type": "string",
+            "minLength": 1
+          },
+          "length": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1048576
+          },
+          "expected_revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id",
+          "address",
+          "length"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "get_analysis_options",
+      "description": "Read available auto/one-shot analyzers, applicability, defaults and typed options.",
+      "effect": "read",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "get_analysis_status",
+      "description": "Read current analysis activity and known previous outcomes; an analyzed flag alone does not prove completion.",
+      "effect": "read",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "start_analysis",
+      "description": "Start an explicit auto or one-shot analysis task without saving the program.",
+      "effect": "program_write",
+      "detached": true,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "one_shot"
+            ],
+            "default": "auto"
+          },
+          "analyzers": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "options": {
+            "type": "object"
+          },
+          "ranges": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "start": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "end": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "start",
+                "end"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "expected_revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 300000
+          }
+        },
+        "required": [
+          "program_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "start_analysis_batch",
+      "description": "Start analysis for an explicit list of programs; returns a parent job with independent child outcomes.",
+      "effect": "program_write",
+      "detached": true,
+      "program_required": false,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "options_by_program": {
+            "type": "object"
+          },
+          "expected_revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 300000
+          }
+        },
+        "required": [
+          "program_ids"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "get_analysis_log",
+      "description": "Read retained diagnostics and timings for the selected program and analysis job. Omit job_id for the latest job. Immutable cursor pages contain at most 65536 Unicode characters; unavailable history and storage truncation are explicit.",
+      "effect": "read",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "job_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "cursor": {
+            "type": "string",
+            "minLength": 1
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000,
+            "default": 100,
+            "description": "Maximum number of text chunks, subject to the 65536-character page cap. Each chunk contains at most 4096 Unicode characters."
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "list_jobs",
+      "description": "List retained MCP jobs with optional program and state filters. Inspect live GUI analysis through get_analysis_status.",
+      "effect": "read",
+      "detached": false,
+      "program_required": false,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "type": "string",
+            "minLength": 1
+          },
+          "cursor": {
+            "type": "string",
+            "minLength": 1
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000,
+            "default": 100
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "get_job",
+      "description": "Inspect or briefly wait for a job; terminal failure is returned as an MCP tool error.",
+      "effect": "read",
+      "detached": false,
+      "program_required": false,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "wait_ms": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000,
+            "default": 0
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "job_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "cancel_job",
+      "description": "Request cancellation of a job; the response distinguishes requested from completed cancellation.",
+      "effect": "session",
+      "detached": false,
+      "program_required": false,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "job_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "list_tools",
+      "description": "List CodeBrowser windows and their open programs.",
+      "effect": "read",
+      "detached": false,
+      "program_required": false,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "get_gui_state",
+      "description": "Read the selected program, location and selection in a specific CodeBrowser.",
+      "effect": "read",
+      "detached": false,
+      "program_required": false,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "tool_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "tool_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "show_program",
+      "description": "Show the same live Program in an existing or new CodeBrowser. Does not load a second copy.",
+      "effect": "ui",
+      "detached": false,
+      "program_required": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "tool_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "new_tool": {
+            "type": "boolean",
+            "default": false
+          },
+          "address": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "program_id"
+        ],
+        "additionalProperties": false,
+        "not": {
+          "required": [
+            "tool_id",
+            "new_tool"
+          ],
+          "properties": {
+            "new_tool": {
+              "const": true
+            }
+          }
+        }
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "navigate_to",
+      "description": "Explicitly activate a program/address in a chosen CodeBrowser.",
+      "effect": "ui",
+      "detached": false,
+      "program_required": false,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "tool_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "address": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "tool_id",
+          "program_id",
+          "address"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "set_selection",
+      "description": "Set address ranges selected in a chosen CodeBrowser.",
+      "effect": "ui",
+      "detached": false,
+      "program_required": false,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "tool_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "ranges": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "start": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "end": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "start",
+                "end"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "tool_id",
+          "program_id",
+          "ranges"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "close_program_in_tool",
+      "description": "Close a program in one CodeBrowser, preserving other owners and requiring explicit discard for the last dirty owner.",
+      "effect": "ui",
+      "detached": false,
+      "program_required": false,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "tool_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "program_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "discard_changes": {
+            "type": "boolean",
+            "default": false
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          }
+        },
+        "required": [
+          "tool_id",
+          "program_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "close_tool",
+      "description": "Close a CodeBrowser, preserving unsaved programs owned elsewhere and saving its changed tool template by default. Does not save program changes.",
+      "effect": "ui",
+      "detached": false,
+      "program_required": false,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "tool_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1800000,
+            "default": 60000
+          },
+          "save_configuration": {
+            "type": "boolean",
+            "default": true,
+            "description": "Save changed CodeBrowser configuration before closing. False rejects changed configuration."
+          }
+        },
+        "required": [
+          "tool_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    }
+  ]
+}
